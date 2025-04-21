@@ -139,6 +139,7 @@ import {
   newLinearElement,
   newTextElement,
   refreshTextDimensions,
+  newRegularPolygonElement,
 } from "@excalidraw/element/newElement";
 
 import {
@@ -7792,7 +7793,10 @@ class App extends React.Component<AppProps, AppState> {
       | "diamond"
       | "ellipse"
       | "iframe"
-      | "embeddable",
+      | "embeddable"
+      | "regularPolygon",
+    specificType?: string,
+    simulatePressure?: boolean
   ) {
     return this.state.currentItemRoundness === "round"
       ? {
@@ -7804,21 +7808,14 @@ class App extends React.Component<AppProps, AppState> {
   }
 
   private createGenericElementOnPointerDown = (
-    elementType: ExcalidrawGenericElement["type"] | "embeddable",
+    elementType: ExcalidrawGenericElement["type"] | "embeddable" | "regularPolygon",
     pointerDownState: PointerDownState,
   ): void => {
     const [gridX, gridY] = getGridPoint(
       pointerDownState.origin.x,
       pointerDownState.origin.y,
-      this.lastPointerDownEvent?.[KEYS.CTRL_OR_CMD]
-        ? null
-        : this.getEffectiveGridSize(),
+      this.getEffectiveGridSize(),
     );
-
-    const topLayerFrame = this.getTopLayerFrameAtSceneCoords({
-      x: gridX,
-      y: gridY,
-    });
 
     const baseElementAttributes = {
       x: gridX,
@@ -7830,16 +7827,25 @@ class App extends React.Component<AppProps, AppState> {
       strokeStyle: this.state.currentItemStrokeStyle,
       roughness: this.state.currentItemRoughness,
       opacity: this.state.currentItemOpacity,
-      roundness: this.getCurrentItemRoundness(elementType),
+      roundness: this.state.currentItemRoundness
+        ? {
+            type: ROUNDNESS.PROPORTIONAL_RADIUS,
+          }
+        : null,
       locked: false,
-      frameId: topLayerFrame ? topLayerFrame.id : null,
-    } as const;
+    };
 
     let element;
     if (elementType === "embeddable") {
       element = newEmbeddableElement({
         type: "embeddable",
         ...baseElementAttributes,
+      });
+    } else if (elementType === "regularPolygon") {
+      element = newRegularPolygonElement({
+        type: "regularPolygon",
+        ...baseElementAttributes,
+        sides: 6, // Default to hexagon
       });
     } else {
       element = newElement({

@@ -11,6 +11,7 @@ import {
   TextIcon,
   ImageIcon,
   EraserIcon,
+  RegularPolygonIcon,
 } from "./icons";
 
 export const SHAPES = [
@@ -76,6 +77,20 @@ export const SHAPES = [
     key: null,
     numericKey: KEYS["9"],
     fillable: false,
+  },
+  {
+    icon: RegularPolygonIcon,
+    value: "regularPolygon",
+    key: KEYS["6"],
+    numericKey: KEYS["6"],
+    fillable: true,
+    strokeable: true,
+    locked: false,
+    centering: true, // If the shape is centered when drawn
+    rotate: true,
+    shape: true, // Indicate this is a shape tool
+    toolName: "regularPolygon", // The internal tool name
+    label: "toolBar.regularPolygon" // The label key for translation
   },
   {
     icon: EraserIcon,

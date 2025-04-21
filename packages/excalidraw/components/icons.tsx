@@ -308,6 +308,17 @@ export const DiamondIcon = createIcon(
   tablerIconProps,
 );
 
+
+export const RegularPolygonIcon = createIcon(
+  // Hexagon points - centered in a 24x24 viewport
+  <polygon
+    points="12,3 20.8,7.5 20.8,16.5 12,21 3.2,16.5 3.2,7.5"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    fill="none"
+  />,
+);
+
 // tabler-icons: circle
 export const EllipseIcon = createIcon(
   <g strokeWidth="1.5">
