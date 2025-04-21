@@ -27,6 +27,8 @@ import {
 import type { ExcalidrawTextElement } from "@excalidraw/element/types";
 
 import { paintIcon } from "../components/icons";
+const underlineIcon = paintIcon; // TEMP fallback
+
 
 import { t } from "../i18n";
 import { getSelectedElements } from "../scene";
@@ -34,7 +36,6 @@ import { CaptureUpdateAction } from "../store";
 
 import { register } from "./register";
 
-// `copiedStyles` is exported only for tests.
 export let copiedStyles: string = "{}";
 
 export const actionCopyStyles = register({
@@ -129,6 +130,8 @@ export const actionPasteStyles = register({
               lineHeight:
                 (elementStylesToCopyFrom as ExcalidrawTextElement).lineHeight ||
                 getLineHeight(fontFamily),
+              underline:
+                (elementStylesToCopyFrom as ExcalidrawTextElement).underline || false,
             });
             let container = null;
             if (newElement.containerId) {
@@ -172,4 +175,30 @@ export const actionPasteStyles = register({
   },
   keyTest: (event) =>
     event[KEYS.CTRL_OR_CMD] && event.altKey && event.code === CODES.V,
+});
+
+export const actionToggleUnderline = register({
+  name: "toggleUnderline",
+  label: "Toggle Underline",
+  icon: underlineIcon,
+  trackEvent: { category: "element" },
+  perform: (elements, appState) => {
+    const updatedElements = elements.map((el) => {
+      if (isTextElement(el)) {
+        return {
+          ...el,
+          underline: !el.underline,
+        };
+      }
+      return el;
+    });
+  
+    return {
+      elements: updatedElements,
+      appState,
+      commitToHistory: true,
+      captureUpdate: CaptureUpdateAction.IMMEDIATELY,
+    };
+  },  
+  keyTest: (event) => event.ctrlKey && event.key === "u",
 });

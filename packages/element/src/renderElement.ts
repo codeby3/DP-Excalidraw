@@ -511,11 +511,22 @@ const drawElementOnCanvas = (
         );
 
         for (let index = 0; index < lines.length; index++) {
-          context.fillText(
-            lines[index],
-            horizontalOffset,
-            index * lineHeightPx + verticalOffset,
-          );
+          const lineY = index * lineHeightPx + verticalOffset;
+          context.fillText(lines[index], horizontalOffset, lineY);
+
+          // ✅ UNDERLINE RENDERING
+          if (element.underline) { // ⬇️ Check if underline is enabled
+            const metrics = context.measureText(lines[index]);
+            const descent = metrics.actualBoundingBoxDescent || 2;
+            const underlineY = lineY + descent + 1;
+
+            context.beginPath(); // ⬇️ Draw underline
+            context.moveTo(horizontalOffset - metrics.width / 2, underlineY);
+            context.lineTo(horizontalOffset + metrics.width / 2, underlineY);
+            context.lineWidth = element.strokeWidth || 1;
+            context.strokeStyle = element.strokeColor || context.fillStyle;
+            context.stroke();
+          }
         }
         context.restore();
         if (shouldTemporarilyAttach) {

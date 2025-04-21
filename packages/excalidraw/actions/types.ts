@@ -140,6 +140,7 @@ export type ActionName =
   | "linkToElement"
   | "cropEditor"
   | "wrapSelectionInFrame"
+  | "toggleUnderline"
   | "toggleLassoTool";
 
 export type PanelComponentProps = {

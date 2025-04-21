@@ -71,6 +71,7 @@ import type {
   ExcalidrawInitialDataState,
   UIAppState,
 } from "@excalidraw/excalidraw/types";
+
 import type { ResolutionType } from "@excalidraw/common/utility-types";
 import type { ResolvablePromise } from "@excalidraw/common/utils";
 
@@ -144,6 +145,11 @@ polyfill();
 window.EXCALIDRAW_THROTTLE_RENDER = true;
 
 declare global {
+  interface Window {
+    ExcalidrawAPI: ExcalidrawImperativeAPI;
+    executeActionByName?: (actionName: string) => void;
+  }
+
   interface BeforeInstallPromptEventChoiceResult {
     outcome: "accepted" | "dismissed";
   }
@@ -157,6 +163,7 @@ declare global {
     beforeinstallprompt: BeforeInstallPromptEvent;
   }
 }
+
 
 let pwaEvent: BeforeInstallPromptEvent | null = null;
 
@@ -365,7 +372,41 @@ const ExcalidrawWrapper = () => {
 
   const [excalidrawAPI, excalidrawRefCallback] =
     useCallbackRefState<ExcalidrawImperativeAPI>();
-
+    useEffect(() => {
+      if (excalidrawAPI) {
+        window.ExcalidrawAPI = excalidrawAPI;
+    
+        // Register a basic action trigger map
+        const actionsMap = new Map();
+    
+        // Example: underline toggle action
+        actionsMap.set("toggleUnderline", () => {
+          const appState = excalidrawAPI.getAppState();
+          const elements = excalidrawAPI.getSceneElements();
+          const files = excalidrawAPI.getFiles();
+    
+          const updated = elements.map((el) =>
+            el.type === "text"
+              ? { ...el, underline: !el.underline }
+              : el,
+          );
+    
+          excalidrawAPI.updateScene({ elements: updated });
+        });
+    
+        // Attach to window for dev testing
+        window.executeActionByName = (actionName) => {
+          const fn = actionsMap.get(actionName);
+          if (fn) {
+            fn();
+          } else {
+            console.warn(`❌ Action "${actionName}" not found.`);
+          }
+        };
+      }
+    }, [excalidrawAPI]);
+    
+    
   const [, setShareDialogState] = useAtom(shareDialogStateAtom);
   const [collabAPI] = useAtom(collabAPIAtom);
   const [isCollaborating] = useAtomWithInitialValue(isCollaboratingAtom, () => {
