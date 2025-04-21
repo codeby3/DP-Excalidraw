@@ -5,13 +5,14 @@ import { deepCopyElement } from "@excalidraw/element/duplicate";
 import { newElementWith } from "@excalidraw/element/mutateElement";
 
 import type { OrderedExcalidrawElement } from "@excalidraw/element/types";
+import type { Emitter } from "./emitter";
 
 import type { ValueOf } from "@excalidraw/common/utility-types";
 
 import { getDefaultAppState } from "./appState";
 import { AppStateChange, ElementsChange } from "./change";
 
-import { Emitter } from "./emitter";
+import { createEmitter } from "./emitter";
 
 import type { AppState, ObservedAppState } from "./types";
 
@@ -135,7 +136,7 @@ export interface IStore {
 }
 
 export class Store implements IStore {
-  public readonly onStoreIncrementEmitter = new Emitter<
+  public readonly onStoreIncrementEmitter = createEmitter<
     [StoreIncrementEvent]
   >();
 

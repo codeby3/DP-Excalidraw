@@ -452,7 +452,7 @@ import {
   resetCursor,
   setCursorForShape,
 } from "../cursor";
-import { Emitter } from "../emitter";
+import { createEmitter } from "../emitter";
 import { ElementCanvasButtons } from "../components/ElementCanvasButtons";
 import { Store, CaptureUpdateAction } from "../store";
 import { LaserTrails } from "../laser-trails";
@@ -680,7 +680,7 @@ class App extends React.Component<AppProps, AppState> {
   eraserTrail = new EraserTrail(this.animationFrameHandler, this);
   lassoTrail = new LassoTrail(this.animationFrameHandler, this);
 
-  onChangeEmitter = new Emitter<
+  onChangeEmitter = createEmitter<
     [
       elements: readonly ExcalidrawElement[],
       appState: AppState,
@@ -688,7 +688,7 @@ class App extends React.Component<AppProps, AppState> {
     ]
   >();
 
-  onPointerDownEmitter = new Emitter<
+  onPointerDownEmitter = createEmitter<
     [
       activeTool: AppState["activeTool"],
       pointerDownState: PointerDownState,
@@ -696,22 +696,22 @@ class App extends React.Component<AppProps, AppState> {
     ]
   >();
 
-  onPointerUpEmitter = new Emitter<
+  onPointerUpEmitter = createEmitter<
     [
       activeTool: AppState["activeTool"],
       pointerDownState: PointerDownState,
       event: PointerEvent,
     ]
   >();
-  onUserFollowEmitter = new Emitter<[payload: OnUserFollowedPayload]>();
-  onScrollChangeEmitter = new Emitter<
+  onUserFollowEmitter = createEmitter<[payload: OnUserFollowedPayload]>();
+  onScrollChangeEmitter = createEmitter<
     [scrollX: number, scrollY: number, zoom: AppState["zoom"]]
   >();
 
-  missingPointerEventCleanupEmitter = new Emitter<
+  missingPointerEventCleanupEmitter = createEmitter<
     [event: PointerEvent | null]
   >();
-  onRemoveEventListenersEmitter = new Emitter<[]>();
+  onRemoveEventListenersEmitter = createEmitter<[]>();
 
   constructor(props: AppProps) {
     super(props);
@@ -2517,7 +2517,7 @@ class App extends React.Component<AppProps, AppState> {
       });
     }
 
-    this.store.onStoreIncrementEmitter.on((increment) => {
+    this.store.onStoreIncrementEmitter.on((increment: { elementsChange: any; appStateChange: any }) => {
       this.history.record(increment.elementsChange, increment.appStateChange);
     });
 
@@ -6755,10 +6755,11 @@ class App extends React.Component<AppProps, AppState> {
    * to properly cleanup pointerdown state, we need to fire any hanging
    * pointerup handlers manually
    */
-  private maybeCleanupAfterMissingPointerUp = (event: PointerEvent | null) => {
+  private maybeCleanupAfterMissingPointerUp = (event: PointerEvent | null): void => {
     lastPointerUp?.();
-    this.missingPointerEventCleanupEmitter.trigger(event).clear();
-  };
+    this.missingPointerEventCleanupEmitter.trigger(event);
+    this.missingPointerEventCleanupEmitter.clear();
+};
 
   // Returns whether the event is a panning
   public handleCanvasPanUsingWheelOrSpaceDrag = (
