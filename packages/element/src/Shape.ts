@@ -11,6 +11,7 @@ import type { ElementShapes } from "@excalidraw/excalidraw/scene/types";
 import {
   isElbowArrow,
   isEmbeddableElement,
+  isFreeDrawElement,
   isIframeElement,
   isIframeLikeElement,
   isLinearElement,
@@ -302,13 +303,9 @@ const getArrowheadShapes = (
 };
 
 /**
- * Generates the roughjs shape for given element.
- *
- * Low-level. Use `ShapeCache.generateElementShape` instead.
- *
- * @private
+ * Generates rectangle shape for rectangle, iframe, and embeddable types
  */
-export const _generateElementShape = (
+const _generateRectangleShape = (
   element: Exclude<NonDeletedExcalidrawElement, ExcalidrawSelectionElement>,
   generator: RoughGenerator,
   {
@@ -321,228 +318,372 @@ export const _generateElementShape = (
     embedsValidationStatus: EmbedsValidationStatus | null;
   },
 ): Drawable | Drawable[] | null => {
-  switch (element.type) {
-    case "rectangle":
-    case "iframe":
-    case "embeddable": {
-      let shape: ElementShapes[typeof element.type];
-      // this is for rendering the stroke/bg of the embeddable, especially
-      // when the src url is not set
+  let shape: ElementShapes[typeof element.type];
+  // this is for rendering the stroke/bg of the embeddable, especially
+  // when the src url is not set
 
-      if (element.roundness) {
-        const w = element.width;
-        const h = element.height;
-        const r = getCornerRadius(Math.min(w, h), element);
-        shape = generator.path(
-          `M ${r} 0 L ${w - r} 0 Q ${w} 0, ${w} ${r} L ${w} ${
-            h - r
-          } Q ${w} ${h}, ${w - r} ${h} L ${r} ${h} Q 0 ${h}, 0 ${
-            h - r
-          } L 0 ${r} Q 0 0, ${r} 0`,
-          generateRoughOptions(
-            modifyIframeLikeForRoughOptions(
-              element,
-              isExporting,
-              embedsValidationStatus,
-            ),
-            true,
-          ),
-        );
-      } else {
-        shape = generator.rectangle(
-          0,
-          0,
-          element.width,
-          element.height,
-          generateRoughOptions(
-            modifyIframeLikeForRoughOptions(
-              element,
-              isExporting,
-              embedsValidationStatus,
-            ),
-            false,
-          ),
-        );
-      }
-      return shape;
-    }
-    case "diamond": {
-      let shape: ElementShapes[typeof element.type];
-
-      const [topX, topY, rightX, rightY, bottomX, bottomY, leftX, leftY] =
-        getDiamondPoints(element);
-      if (element.roundness) {
-        const verticalRadius = getCornerRadius(Math.abs(topX - leftX), element);
-
-        const horizontalRadius = getCornerRadius(
-          Math.abs(rightY - topY),
+  if (element.roundness) {
+    const w = element.width;
+    const h = element.height;
+    const r = getCornerRadius(Math.min(w, h), element);
+    shape = generator.path(
+      `M ${r} 0 L ${w - r} 0 Q ${w} 0, ${w} ${r} L ${w} ${
+        h - r
+      } Q ${w} ${h}, ${w - r} ${h} L ${r} ${h} Q 0 ${h}, 0 ${
+        h - r
+      } L 0 ${r} Q 0 0, ${r} 0`,
+      generateRoughOptions(
+        modifyIframeLikeForRoughOptions(
           element,
-        );
+          isExporting,
+          embedsValidationStatus,
+        ),
+        true,
+      ),
+    );
+  } else {
+    shape = generator.rectangle(
+      0,
+      0,
+      element.width,
+      element.height,
+      generateRoughOptions(
+        modifyIframeLikeForRoughOptions(
+          element,
+          isExporting,
+          embedsValidationStatus,
+        ),
+        false,
+      ),
+    );
+  }
+  return shape;
+};
 
-        shape = generator.path(
-          `M ${topX + verticalRadius} ${topY + horizontalRadius} L ${
-            rightX - verticalRadius
-          } ${rightY - horizontalRadius}
-            C ${rightX} ${rightY}, ${rightX} ${rightY}, ${
-            rightX - verticalRadius
-          } ${rightY + horizontalRadius}
-            L ${bottomX + verticalRadius} ${bottomY - horizontalRadius}
-            C ${bottomX} ${bottomY}, ${bottomX} ${bottomY}, ${
-            bottomX - verticalRadius
-          } ${bottomY - horizontalRadius}
-            L ${leftX + verticalRadius} ${leftY + horizontalRadius}
-            C ${leftX} ${leftY}, ${leftX} ${leftY}, ${leftX + verticalRadius} ${
-            leftY - horizontalRadius
-          }
-            L ${topX - verticalRadius} ${topY + horizontalRadius}
-            C ${topX} ${topY}, ${topX} ${topY}, ${topX + verticalRadius} ${
-            topY + horizontalRadius
-          }`,
+/**
+ * Generates diamond shape
+ */
+const _generateDiamondShape = (
+  element: Exclude<NonDeletedExcalidrawElement, ExcalidrawSelectionElement>,
+  generator: RoughGenerator,
+  {
+    isExporting,
+    canvasBackgroundColor,
+    embedsValidationStatus,
+  }: {
+    isExporting: boolean;
+    canvasBackgroundColor: string;
+    embedsValidationStatus: EmbedsValidationStatus | null;
+  },
+): Drawable | Drawable[] | null => {
+  let shape: ElementShapes[typeof element.type];
+
+  const [topX, topY, rightX, rightY, bottomX, bottomY, leftX, leftY] =
+    getDiamondPoints(element);
+  if (element.roundness) {
+    const verticalRadius = getCornerRadius(Math.abs(topX - leftX), element);
+
+    const horizontalRadius = getCornerRadius(
+      Math.abs(rightY - topY),
+      element,
+    );
+
+    shape = generator.path(
+      `M ${topX + verticalRadius} ${topY + horizontalRadius} L ${
+        rightX - verticalRadius
+      } ${rightY - horizontalRadius}
+        C ${rightX} ${rightY}, ${rightX} ${rightY}, ${
+        rightX - verticalRadius
+      } ${rightY + horizontalRadius}
+        L ${bottomX + verticalRadius} ${bottomY - horizontalRadius}
+        C ${bottomX} ${bottomY}, ${bottomX} ${bottomY}, ${
+        bottomX - verticalRadius
+      } ${bottomY - horizontalRadius}
+        L ${leftX + verticalRadius} ${leftY + horizontalRadius}
+        C ${leftX} ${leftY}, ${leftX} ${leftY}, ${leftX + verticalRadius} ${
+        leftY - horizontalRadius
+      }
+        L ${topX - verticalRadius} ${topY + horizontalRadius}
+        C ${topX} ${topY}, ${topX} ${topY}, ${topX + verticalRadius} ${
+        topY + horizontalRadius
+      }`,
+      generateRoughOptions(element, true),
+    );
+  } else {
+    shape = generator.polygon(
+      [
+        [topX, topY],
+        [rightX, rightY],
+        [bottomX, bottomY],
+        [leftX, leftY],
+      ],
+      generateRoughOptions(element),
+    );
+  }
+  return shape;
+};
+
+/**
+ * Generates ellipse shape
+ */
+const _generateEllipseShape = (
+  element: Exclude<NonDeletedExcalidrawElement, ExcalidrawSelectionElement>,
+  generator: RoughGenerator,
+  {
+    isExporting,
+    canvasBackgroundColor,
+    embedsValidationStatus,
+  }: {
+    isExporting: boolean;
+    canvasBackgroundColor: string;
+    embedsValidationStatus: EmbedsValidationStatus | null;
+  },
+): Drawable | Drawable[] | null => {
+  const shape: ElementShapes[typeof element.type] = generator.ellipse(
+    element.width / 2,
+    element.height / 2,
+    element.width,
+    element.height,
+    generateRoughOptions(element),
+  );
+  return shape;
+};
+
+/**
+ * Generates line and arrow shapes
+ */
+const _generateLineArrowShape = (
+  element: Exclude<NonDeletedExcalidrawElement, ExcalidrawSelectionElement>,
+  generator: RoughGenerator,
+  {
+    isExporting,
+    canvasBackgroundColor,
+    embedsValidationStatus,
+  }: {
+    isExporting: boolean;
+    canvasBackgroundColor: string;
+    embedsValidationStatus: EmbedsValidationStatus | null;
+  },
+): Drawable | Drawable[] | null => {
+  // Add type guard for linear elements
+  if (!isLinearElement(element)) {
+    // This should not happen based on the map, but satisfies TypeScript
+    return null;
+  }
+
+  let shape: ElementShapes[typeof element.type];
+  const options = generateRoughOptions(element);
+
+  // points array can be empty in the beginning, so it is important to add
+  // initial position to it
+  const points = element.points.length
+    ? element.points
+    : [pointFrom<LocalPoint>(0, 0)];
+
+  if (isElbowArrow(element)) {
+    // NOTE (mtolmacs): Temporary fix for extremely big arrow shapes
+    if (
+      !points.every(
+        (point: LocalPoint) => Math.abs(point[0]) <= 1e6 && Math.abs(point[1]) <= 1e6, // Add explicit type for point
+      )
+    ) {
+      console.error(
+        `Elbow arrow with extreme point positions detected. Arrow not rendered.`,
+        element.id,
+        JSON.stringify(points),
+      );
+      shape = [];
+    } else {
+      shape = [
+        generator.path(
+          generateElbowArrowShape(points, 16),
           generateRoughOptions(element, true),
-        );
-      } else {
-        shape = generator.polygon(
-          [
-            [topX, topY],
-            [rightX, rightY],
-            [bottomX, bottomY],
-            [leftX, leftY],
-          ],
-          generateRoughOptions(element),
-        );
-      }
-      return shape;
+        ),
+      ];
     }
-    case "ellipse": {
-      const shape: ElementShapes[typeof element.type] = generator.ellipse(
-        element.width / 2,
-        element.height / 2,
-        element.width,
-        element.height,
-        generateRoughOptions(element),
+  } else if (!element.roundness) {
+    // curve is always the first element
+    // this simplifies finding the curve for an element
+    if (options.fill) {
+      shape = [
+        generator.polygon(points as unknown as RoughPoint[], options),
+      ];
+    } else {
+      shape = [
+        generator.linearPath(points as unknown as RoughPoint[], options),
+      ];
+    }
+  } else {
+    shape = [generator.curve(points as unknown as RoughPoint[], options)];
+  }
+
+  // add lines only in arrow
+  if (element.type === "arrow") {
+    const { startArrowhead = null, endArrowhead = "arrow" } = element;
+
+    if (startArrowhead !== null) {
+      const shapes = getArrowheadShapes(
+        element, // No longer needs assertion due to isLinearElement guard
+        shape,
+        "start",
+        startArrowhead,
+        generator,
+        options,
+        canvasBackgroundColor,
       );
-      return shape;
+      shape.push(...shapes);
     }
-    case "line":
-    case "arrow": {
-      let shape: ElementShapes[typeof element.type];
-      const options = generateRoughOptions(element);
 
-      // points array can be empty in the beginning, so it is important to add
-      // initial position to it
-      const points = element.points.length
-        ? element.points
-        : [pointFrom<LocalPoint>(0, 0)];
-
-      if (isElbowArrow(element)) {
-        // NOTE (mtolmacs): Temporary fix for extremely big arrow shapes
-        if (
-          !points.every(
-            (point) => Math.abs(point[0]) <= 1e6 && Math.abs(point[1]) <= 1e6,
-          )
-        ) {
-          console.error(
-            `Elbow arrow with extreme point positions detected. Arrow not rendered.`,
-            element.id,
-            JSON.stringify(points),
-          );
-          shape = [];
-        } else {
-          shape = [
-            generator.path(
-              generateElbowArrowShape(points, 16),
-              generateRoughOptions(element, true),
-            ),
-          ];
-        }
-      } else if (!element.roundness) {
-        // curve is always the first element
-        // this simplifies finding the curve for an element
-        if (options.fill) {
-          shape = [
-            generator.polygon(points as unknown as RoughPoint[], options),
-          ];
-        } else {
-          shape = [
-            generator.linearPath(points as unknown as RoughPoint[], options),
-          ];
-        }
-      } else {
-        shape = [generator.curve(points as unknown as RoughPoint[], options)];
+    if (endArrowhead !== null) {
+      if (endArrowhead === undefined) {
+        // Hey, we have an old arrow here!
       }
 
-      // add lines only in arrow
-      if (element.type === "arrow") {
-        const { startArrowhead = null, endArrowhead = "arrow" } = element;
-
-        if (startArrowhead !== null) {
-          const shapes = getArrowheadShapes(
-            element,
-            shape,
-            "start",
-            startArrowhead,
-            generator,
-            options,
-            canvasBackgroundColor,
-          );
-          shape.push(...shapes);
-        }
-
-        if (endArrowhead !== null) {
-          if (endArrowhead === undefined) {
-            // Hey, we have an old arrow here!
-          }
-
-          const shapes = getArrowheadShapes(
-            element,
-            shape,
-            "end",
-            endArrowhead,
-            generator,
-            options,
-            canvasBackgroundColor,
-          );
-          shape.push(...shapes);
-        }
-      }
-      return shape;
-    }
-    case "freedraw": {
-      let shape: ElementShapes[typeof element.type];
-      generateFreeDrawShape(element);
-
-      if (isPathALoop(element.points)) {
-        // generate rough polygon to fill freedraw shape
-        const simplifiedPoints = simplify(
-          element.points as Mutable<LocalPoint[]>,
-          0.75,
-        );
-        shape = generator.curve(simplifiedPoints as [number, number][], {
-          ...generateRoughOptions(element),
-          stroke: "none",
-        });
-      } else {
-        shape = null;
-      }
-      return shape;
-    }
-    case "frame":
-    case "magicframe":
-    case "text":
-    case "image": {
-      const shape: ElementShapes[typeof element.type] = null;
-      // we return (and cache) `null` to make sure we don't regenerate
-      // `element.canvas` on rerenders
-      return shape;
-    }
-    default: {
-      assertNever(
-        element,
-        `generateElementShape(): Unimplemented type ${(element as any)?.type}`,
+      const shapes = getArrowheadShapes(
+        element, // No longer needs assertion due to isLinearElement guard
+        shape,
+        "end",
+        endArrowhead,
+        generator,
+        options,
+        canvasBackgroundColor,
       );
-      return null;
+      shape.push(...shapes);
     }
   }
+  return shape;
+};
+
+/**
+ * Generates freedraw shape
+ */
+const _generateFreeDrawShape = (
+  element: Exclude<NonDeletedExcalidrawElement, ExcalidrawSelectionElement>,
+  generator: RoughGenerator,
+  {
+    isExporting,
+    canvasBackgroundColor,
+    embedsValidationStatus,
+  }: {
+    isExporting: boolean;
+    canvasBackgroundColor: string;
+    embedsValidationStatus: EmbedsValidationStatus | null;
+  },
+): Drawable | Drawable[] | null => {
+  // Add type guard for freedraw elements
+  if (!isFreeDrawElement(element)) {
+    // This should not happen based on the map, but satisfies TypeScript
+    return null;
+  }
+
+  let shape: ElementShapes[typeof element.type];
+  generateFreeDrawShape(element); // No longer needs assertion
+
+  if (isPathALoop(element.points)) {
+    // generate rough polygon to fill freedraw shape
+    const simplifiedPoints = simplify(
+      element.points as Mutable<LocalPoint[]>,
+      0.75,
+    );
+    shape = generator.curve(simplifiedPoints as [number, number][], {
+      ...generateRoughOptions(element),
+      stroke: "none",
+    });
+  } else {
+    shape = null;
+  }
+  return shape;
+};
+
+/**
+ * Generates null shape for frame, magicframe, text, and image types
+ */
+const _generateNullShape = (
+  element: Exclude<NonDeletedExcalidrawElement, ExcalidrawSelectionElement>,
+  generator: RoughGenerator,
+  {
+    isExporting,
+    canvasBackgroundColor,
+    embedsValidationStatus,
+  }: {
+    isExporting: boolean;
+    canvasBackgroundColor: string;
+    embedsValidationStatus: EmbedsValidationStatus | null;
+  },
+): Drawable | Drawable[] | null => {
+  const shape: ElementShapes[typeof element.type] = null;
+  // we return (and cache) `null` to make sure we don't regenerate
+  // `element.canvas` on rerenders
+  return shape;
+};
+
+/**
+ * Maps element types to their corresponding shape generator functions.
+ * This replaces the switch statement in _generateElementShape, depatternising
+ * the Factory Method pattern.
+ */
+const shapeGeneratorMap: {
+  [K in Exclude<
+    NonDeletedExcalidrawElement,
+    ExcalidrawSelectionElement
+  >["type"]]: (
+    element: Extract<
+      Exclude<NonDeletedExcalidrawElement, ExcalidrawSelectionElement>,
+      { type: K }
+    >,
+    generator: RoughGenerator,
+    options: {
+      isExporting: boolean;
+      canvasBackgroundColor: string;
+      embedsValidationStatus: EmbedsValidationStatus | null;
+    },
+  ) => Drawable | Drawable[] | null;
+} = {
+  rectangle: _generateRectangleShape,
+  iframe: _generateRectangleShape,
+  embeddable: _generateRectangleShape,
+  diamond: _generateDiamondShape,
+  ellipse: _generateEllipseShape,
+  line: _generateLineArrowShape,
+  arrow: _generateLineArrowShape,
+  freedraw: _generateFreeDrawShape,
+  frame: _generateNullShape,
+  magicframe: _generateNullShape,
+  text: _generateNullShape,
+  image: _generateNullShape,
+};
+
+/**
+ * Generates the roughjs shape for given element by looking up the appropriate
+ * generator function and delegating to it.
+ *
+ * Low-level. Use `ShapeCache.generateElementShape` instead.
+ *
+ * @private
+ */
+export const _generateElementShape = (
+  element: Exclude<NonDeletedExcalidrawElement, ExcalidrawSelectionElement>,
+  generator: RoughGenerator,
+  options: {
+    isExporting: boolean;
+    canvasBackgroundColor: string;
+    embedsValidationStatus: EmbedsValidationStatus | null;
+  },
+): Drawable | Drawable[] | null => {
+  const generatorFn = shapeGeneratorMap[element.type];
+
+  if (!generatorFn) {
+    assertNever(
+      element as never, // Cast to never as this path should be unreachable
+      `_generateElementShape(): Unimplemented type ${(element as any)?.type}`,
+    );
+    return null;
+  }
+
+  // The type assertion `as any` is used here because TypeScript struggles
+  // to reconcile the specific element type with the generic function signature
+  // defined in the map, even though we know it's correct due to the lookup.
+  return (generatorFn as any)(element, generator, options);
 };
 
 const generateElbowArrowShape = (
