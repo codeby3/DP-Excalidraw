@@ -1,6 +1,6 @@
 import type { SceneElementsMap } from "@excalidraw/element/types";
 
-import { Emitter } from "./emitter";
+import { createEmitter } from "./emitter";
 
 import type { AppStateChange, ElementsChange } from "./change";
 import type { Snapshot } from "./store";
@@ -16,7 +16,7 @@ export class HistoryChangedEvent {
 }
 
 export class History {
-  public readonly onHistoryChangedEmitter = new Emitter<
+  public readonly onHistoryChangedEmitter = createEmitter<
     [HistoryChangedEvent]
   >();
 
