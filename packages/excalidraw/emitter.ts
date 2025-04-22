@@ -1,51 +1,46 @@
-import type { UnsubscribeCallback } from "./types";
-
 type Subscriber<T extends any[]> = (...payload: T) => void;
+type UnsubscribeCallback = () => void;
+export type Emitter<T extends any[]> = ReturnType<typeof createEmitter<T>>;
 
-export class Emitter<T extends any[] = []> {
-  public subscribers: Subscriber<T>[] = [];
+export function createEmitter<T extends any[] = []>() {
+  let subscribers: Subscriber<T>[] = [];
 
-  /**
-   * Attaches subscriber
-   *
-   * @returns unsubscribe function
-   */
-  on(...handlers: Subscriber<T>[] | Subscriber<T>[][]): UnsubscribeCallback {
-    const _handlers = handlers
-      .flat()
-      .filter((item) => typeof item === "function");
+  const on = (...handlers: Subscriber<T>[] | Subscriber<T>[][]): UnsubscribeCallback => {
+    const _handlers = handlers.flat().filter((item): item is Subscriber<T> => typeof item === "function");
+    subscribers.push(..._handlers);
+    return () => off(_handlers);
+  };
 
-    this.subscribers.push(..._handlers);
+  const once = (...handlers: Subscriber<T>[] | Subscriber<T>[][]): UnsubscribeCallback => {
+    const _handlers = handlers.flat().filter((item): item is Subscriber<T> => typeof item === "function");
+    const wrappedHandlers: Subscriber<T>[] = [];
 
-    return () => this.off(_handlers);
-  }
-
-  once(...handlers: Subscriber<T>[] | Subscriber<T>[][]): UnsubscribeCallback {
-    const _handlers = handlers
-      .flat()
-      .filter((item) => typeof item === "function");
-
-    _handlers.push(() => detach());
-
-    const detach = this.on(..._handlers);
-    return detach;
-  }
-
-  off(...handlers: Subscriber<T>[] | Subscriber<T>[][]) {
-    const _handlers = handlers.flat();
-    this.subscribers = this.subscribers.filter(
-      (handler) => !_handlers.includes(handler),
+    const detach = on(
+      ..._handlers.map((handler) => {
+        const wrapper: Subscriber<T> = (...args) => {
+          handler(...args);
+          off([wrapper]);
+        };
+        wrappedHandlers.push(wrapper);
+        return wrapper;
+      })
     );
-  }
 
-  trigger(...payload: T) {
-    for (const handler of this.subscribers) {
-      handler(...payload);
-    }
-    return this;
-  }
+    return detach;
+  };
 
-  clear() {
-    this.subscribers = [];
-  }
+  const off = (...handlers: Subscriber<T>[] | Subscriber<T>[][]) => {
+    const _handlers = handlers.flat();
+    subscribers = subscribers.filter((handler) => !_handlers.includes(handler));
+  };
+
+  const trigger = (...payload: T) => {
+    subscribers.forEach((handler) => handler(...payload));
+  };
+
+  const clear = () => {
+    subscribers = [];
+  };
+
+  return { on, once, off, trigger, clear };
 }

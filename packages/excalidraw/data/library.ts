@@ -26,7 +26,7 @@ import type { MaybePromise } from "@excalidraw/common/utility-types";
 
 import { atom, editorJotaiStore } from "../editor-jotai";
 
-import { Emitter } from "../emitter";
+import { createEmitter } from "../emitter";
 import { AbortError } from "../errors";
 import { libraryItemSvgsCache } from "../hooks/useLibraryItemSvg";
 import { t } from "../i18n";
@@ -68,7 +68,7 @@ type LibraryUpdate = {
 // such as schema version
 export type LibraryPersistedData = { libraryItems: LibraryItems };
 
-const onLibraryUpdateEmitter = new Emitter<
+const onLibraryUpdateEmitter = createEmitter<
   [update: LibraryUpdate, libraryItems: LibraryItems]
 >();
 
