@@ -109,6 +109,14 @@ export const generateRoughOptions = (
       }
       return options;
     }
+    case "regularPolygon": {
+      options.fillStyle = element.fillStyle;
+      options.fill = isTransparent(element.backgroundColor)
+        ? undefined
+        : element.backgroundColor;
+      // Add any specific options for polygons if needed, otherwise just return
+      return options;
+    }
     case "line":
     case "freedraw": {
       if (isPathALoop(element.points)) {
