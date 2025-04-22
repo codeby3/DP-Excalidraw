@@ -81,16 +81,9 @@ export const SHAPES = [
   {
     icon: RegularPolygonIcon,
     value: "regularPolygon",
-    key: KEYS["6"],
-    numericKey: KEYS["6"],
+    key: null, // TODO: Assign a unique letter key if needed
+    numericKey: null, // Removed conflicting key
     fillable: true,
-    strokeable: true,
-    locked: false,
-    centering: true, // If the shape is centered when drawn
-    rotate: true,
-    shape: true, // Indicate this is a shape tool
-    toolName: "regularPolygon", // The internal tool name
-    label: "toolBar.regularPolygon" // The label key for translation
   },
   {
     icon: EraserIcon,
