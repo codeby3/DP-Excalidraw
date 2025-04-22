@@ -6595,7 +6595,8 @@ class App extends React.Component<AppProps, AppState> {
     ) {
       this.createFrameElementOnPointerDown(
         pointerDownState,
-        this.state.activeTool.type,
+        // Ensure only frame or magicframe types are passed
+        this.state.activeTool.type as "frame" | "magicframe",
       );
     } else if (this.state.activeTool.type === "laser") {
       this.laserTrails.startPath(
@@ -6603,11 +6604,12 @@ class App extends React.Component<AppProps, AppState> {
         pointerDownState.lastCoords.y,
       );
     } else if (
-      this.state.activeTool.type !== "eraser" &&
-      this.state.activeTool.type !== "hand"
+      ["selection", "rectangle", "diamond", "ellipse", "embeddable", "regularPolygon", "text", "image", "lasso"].includes(
+        this.state.activeTool.type
+      )
     ) {
       this.createGenericElementOnPointerDown(
-        this.state.activeTool.type,
+        this.state.activeTool.type as "selection" | "rectangle" | "diamond" | "ellipse" | "embeddable" | "regularPolygon",
         pointerDownState,
       );
     }

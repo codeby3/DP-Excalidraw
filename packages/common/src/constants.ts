@@ -436,6 +436,8 @@ export const TOOL_TYPE = {
   eraser: "eraser",
   hand: "hand",
   laser: "laser",
+  frame: "frame",
+  magicframe: "magicframe",
 } as const;
 
 export const EDITOR_LS_KEYS = {
