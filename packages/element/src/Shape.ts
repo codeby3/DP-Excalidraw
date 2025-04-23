@@ -18,6 +18,9 @@ import {
 import type { ExcalidrawFreeDrawElement } from "./types";
 import { getCornerRadius, isPathALoop } from "./shapes";
 
+
+
+
 // Type guard to check if element is a freedraw element
 function isFreeDrawElement(el: any): el is ExcalidrawFreeDrawElement {
   return el.type === "freedraw" && Array.isArray(el.points);
