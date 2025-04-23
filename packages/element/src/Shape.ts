@@ -17,6 +17,11 @@ import {
 } from "./typeChecks";
 import type { ExcalidrawFreeDrawElement } from "./types";
 import { getCornerRadius, isPathALoop } from "./shapes";
+
+// Type guard to check if element is a freedraw element
+function isFreeDrawElement(el: any): el is ExcalidrawFreeDrawElement {
+  return el.type === "freedraw" && Array.isArray(el.points);
+}
 import { headingForPointIsHorizontal } from "./heading";
 
 import { canChangeRoundness } from "./comparisons";
@@ -94,23 +99,23 @@ export const generateRoughOptions = (
       continuousPath || element.roughness < ROUGHNESS.cartoonist,
   };
 
-  switch (element.type) {
-    case "rectangle":
-    case "iframe":
-    case "embeddable":
-    case "diamond":
-    case "ellipse": {
-      options.fillStyle = element.fillStyle;
-      options.fill = isTransparent(element.backgroundColor)
-        ? undefined
-        : element.backgroundColor;
-      if (element.type === "ellipse") {
-        options.curveFitting = 1;
-      }
-      return options;
+  // Depatternized (Strategy Pattern): Replace switch statement with direct property assignments based on element type
+  if (element.type === "rectangle" || element.type === "iframe" || element.type === "embeddable" || element.type === "diamond" || element.type === "ellipse") {
+    options.fillStyle = element.fillStyle;
+    options.fill = isTransparent(element.backgroundColor)
+      ? undefined
+      : element.backgroundColor;
+    
+    if (element.type === "ellipse") {
+      options.curveFitting = 1;
     }
-    case "line":
-    case "freedraw": {
+    
+    return options;
+  }
+  
+  if (element.type === "line" || element.type === "freedraw") {
+    // Add type guard for linear/freedraw elements to access points
+    if (isLinearElement(element) || isFreeDrawElement(element)) {
       if (isPathALoop(element.points)) {
         options.fillStyle = element.fillStyle;
         options.fill =
@@ -118,14 +123,19 @@ export const generateRoughOptions = (
             ? undefined
             : element.backgroundColor;
       }
-      return options;
     }
-    case "arrow":
-      return options;
-    default: {
-      throw new Error(`Unimplemented type ${element.type}`);
-    }
+    return options;
   }
+  
+  if (element.type === "arrow") {
+    return options;
+  }
+
+  // This part should ideally be unreachable if all types are handled above
+  // but kept for robustness, similar to a default case.
+  // Consider logging an error or using assertNever if appropriate.
+  console.error(`generateRoughOptions: Unimplemented type ${element.type}`);
+  return options; // Return base options as a fallback
 };
 
 const modifyIframeLikeForRoughOptions = (
@@ -565,11 +575,6 @@ export const _generateFreeDrawShape = (
     embedsValidationStatus: EmbedsValidationStatus | null;
   },
 ): Drawable | Drawable[] | null => {
-  // Type guard to check if element is a freedraw element
-  function isFreeDrawElement(el: any): el is ExcalidrawFreeDrawElement {
-    return el.type === "freedraw" && Array.isArray(el.points);
-  }
-
   if (!isFreeDrawElement(element)) {
     return null;
   }
